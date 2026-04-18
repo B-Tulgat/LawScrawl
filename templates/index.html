@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Хуулийн AI Туслах | Legalinfo Search</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #1a3a5f;
+            --accent-color: #c5a059;
+            --bg-light: #f4f7f9;
+            --text-dark: #333;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: var(--bg-light);
+            color: var(--text-dark);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 800px;
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin: 40px auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            color: var(--primary-color);
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        header p {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1.5px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        textarea {
+            height: 120px;
+            resize: vertical;
+        }
+
+        button {
+            width: 100%;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 15px;
+            border: none;
+            border-radius: 6px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        button:hover {
+            background-color: #122a46;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        #result-container {
+            margin-top: 30px;
+            padding: 20px;
+            border-left: 4px solid var(--accent-color);
+            background-color: #fafafa;
+            border-radius: 0 6px 6px 0;
+            display: none;
+        }
+
+        #result-container > label {
+            margin-bottom: 12px;
+        }
+
+        .loader {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .loader p {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .loader span {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background-color: var(--accent-color);
+            border-radius: 50%;
+            margin: 0 3px;
+            animation: bounce 0.6s infinite alternate;
+        }
+
+        .loader span:nth-child(2) { animation-delay: 0.2s; }
+        .loader span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes bounce {
+            to { opacity: 0.3; transform: translateY(-10px); }
+        }
+
+        #answer-text {
+            line-height: 1.7;
+            font-size: 15px;
+        }
+
+        /* Markdown-rendered styles */
+        #answer-text p {
+            margin: 0 0 10px;
+        }
+
+        #answer-text ul {
+            padding-left: 20px;
+            margin: 8px 0;
+        }
+
+        #answer-text li {
+            margin-bottom: 8px;
+        }
+
+        #answer-text strong {
+            color: var(--primary-color);
+        }
+
+        #answer-text a.legal-link {
+            color: var(--primary-color);
+            font-weight: 600;
+            text-decoration: underline;
+            word-break: break-all;
+        }
+
+        #answer-text a.legal-link:hover {
+            color: var(--accent-color);
+        }
+
+        .sources-section {
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .sources-section label {
+            font-size: 0.85em;
+            color: #888;
+            margin-bottom: 8px;
+        }
+
+        .source-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .source-chip {
+            display: inline-block;
+            padding: 4px 10px;
+            background: #eef2f7;
+            border: 1px solid #cdd8e8;
+            border-radius: 20px;
+            font-size: 12px;
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .source-chip:hover {
+            background: #dce6f2;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Legal AI</h1>
+        <p>Монгол Улсын хууль тогтоомжийн ухаалаг хайлтын систем</p>
+    </header>
+
+    <div class="input-group">
+        <label for="category-select">Хууль тогтоомжийн ангилал:</label>
+        <select id="category-select">
+            {% for cat in categories %}
+            <option value="{{ cat }}">{{ cat }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="input-group">
+        <label for="query-input">Таны асуулт:</label>
+        <textarea id="query-input" placeholder="Жишээ нь: Кофе шоп нээхэд ямар стандарт шаардлагатай вэ?"></textarea>
+    </div>
+
+    <button id="submit-btn">Асуулт илгээх</button>
+
+    <div class="loader" id="loader">
+        <p>Хуулийн заалтуудыг уншиж байна...</p>
+        <span></span><span></span><span></span>
+    </div>
+
+    <div id="result-container">
+        <label>Хариулт:</label>
+        <div id="answer-text"></div>
+        <div id="sources-container"></div>
+    </div>
+</div>
+
+<script>
+    const submitBtn = document.getElementById('submit-btn');
+    const queryInput = document.getElementById('query-input');
+    const categorySelect = document.getElementById('category-select');
+    const resultContainer = document.getElementById('result-container');
+    const answerText = document.getElementById('answer-text');
+    const sourcesContainer = document.getElementById('sources-container');
+    const loader = document.getElementById('loader');
+
+    /**
+     * Convert a basic markdown string to HTML.
+     * Handles: **bold**, *italic*, bullet lists (both * and - prefixes),
+     * and bare URLs turned into clickable links.
+     */
+    function markdownToHtml(text) {
+        if (!text) return '';
+
+        const lines = text.split('\n');
+        let html = '';
+        let inList = false;
+
+        for (let i = 0; i < lines.length; i++) {
+            let line = lines[i];
+
+            // Detect bullet list items (* text or - text or •   text)
+            const bulletMatch = line.match(/^[\*\-•]\s+(.*)/);
+            if (bulletMatch) {
+                if (!inList) {
+                    html += '<ul>';
+                    inList = true;
+                }
+                html += '<li>' + inlineFormat(bulletMatch[1]) + '</li>';
+            } else {
+                if (inList) {
+                    html += '</ul>';
+                    inList = false;
+                }
+                const trimmed = line.trim();
+                if (trimmed === '') {
+                    // Empty line = paragraph break — only add if not at start
+                    if (html.length > 0) html += '<br>';
+                } else {
+                    html += '<p>' + inlineFormat(trimmed) + '</p>';
+                }
+            }
+        }
+
+        if (inList) html += '</ul>';
+        return html;
+    }
+
+    /**
+     * Apply inline markdown: **bold**, *italic*, and URL linking.
+     */
+    function inlineFormat(text) {
+        // **bold**
+        text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        // *italic* (only single asterisks not part of bold)
+        text = text.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
+        // URLs → links
+        text = text.replace(/(https?:\/\/[^\s\)]+)/g, function(url) {
+            // Strip trailing punctuation that likely isn't part of the URL
+            const trail = url.match(/[.,;:)\]]+$/);
+            const suffix = trail ? trail[0] : '';
+            const cleanUrl = trail ? url.slice(0, -suffix.length) : url;
+            return '<a href="' + cleanUrl + '" target="_blank" class="legal-link">' + cleanUrl + '</a>' + suffix;
+        });
+        return text;
+    }
+
+    /**
+     * Render unique source chips from the sources array.
+     */
+    function renderSources(sources) {
+        if (!sources || sources.length === 0) {
+            sourcesContainer.innerHTML = '';
+            return;
+        }
+
+        // Deduplicate by URL
+        const seen = new Set();
+        const unique = sources.filter(s => {
+            if (seen.has(s.url)) return false;
+            seen.add(s.url);
+            return true;
+        });
+
+        let chipsHtml = '<div class="sources-section"><label>Эх сурвалж:</label><div class="source-chips">';
+        unique.forEach((s, idx) => {
+            chipsHtml += '<a href="' + s.url + '" target="_blank" class="source-chip">Хууль #' + s.lawId + '</a>';
+        });
+        chipsHtml += '</div></div>';
+        sourcesContainer.innerHTML = chipsHtml;
+    }
+
+    submitBtn.addEventListener('click', async () => {
+        const query = queryInput.value.trim();
+        const category = categorySelect.value;
+
+        if (!query) {
+            alert('Асуултаа оруулна уу.');
+            return;
+        }
+
+        submitBtn.disabled = true;
+        resultContainer.style.display = 'none';
+        loader.style.display = 'block';
+        answerText.innerHTML = '';
+        sourcesContainer.innerHTML = '';
+
+        try {
+            const response = await fetch('/ask', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: query, category: category })
+            });
+
+            if (!response.ok) {
+                throw new Error('Server error: ' + response.status);
+            }
+
+            const data = await response.json();
+
+            if (data.answer) {
+                answerText.innerHTML = markdownToHtml(data.answer);
+                renderSources(data.sources);
+                resultContainer.style.display = 'block';
+            } else {
+                alert('Хариулт авахад алдаа гарлаа.');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Сервертэй холбогдож чадсангүй: ' + error.message);
+        } finally {
+            submitBtn.disabled = false;
+            loader.style.display = 'none';
+        }
+    });
+</script>
+
+</body>
+</html>
